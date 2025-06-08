@@ -151,11 +151,18 @@ const unsigned char cowFilled [] PROGMEM = {
 
 #define playButton 25
 #define RedLights 17
-#define GreenLights 21
+#define GreenLights 13
+
+int cow_position = 0; // Variable to hold the cow's position
+bool game_running = true; // Flag to indicate if the game is running
+
+unsigned long previousMillis = 0; //for flashing leds
+bool ledState = LOW; // Variable to hold the state of the LED
 
 ICACHE_RAM_ATTR void Play_button_pressed() {
   Serial.println("Play button pressed!");
-    digitalWrite(GreenLights, LOW); // Turn off GreenLights
+  game_running = !game_running; // Toggle game state
+  //delay(100); // Debounce delay
 }
 
 
@@ -209,23 +216,71 @@ void setup() {
     display.display();
     delay(150);
   }
+  game_running = false; // Set game_running to false initially
+  //show the start game message
+  delay(1000);
+  display.clearDisplay();
+  display.setCursor(20, 28);
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE); // Set text color to white
+  display.println("PRESS TO START!");
+  display.display();
+  Serial.println("Waiting for play button press...");
+  //wait until the play button is pressed
+  while (digitalRead(playButton) == HIGH) {
+    // Wait for the play button to be pressed
+    delay(10); // Debounce delay
+  }
+  Serial.println("game started!");
+}
+
+void play_game(){
+    //run filled cow image
+    if(game_running == true){
+    for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+        display.clearDisplay();           // clear the display
+        display.setCursor(0,0);          // set cursor to top left corner
+        display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+        //hold outline of the cow
+        display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+        display.display();            // update the display
+        delay(10);                        // wait for 10 milliseconds
+        if(game_running == false){
+          break; // Exit the loop if game is not running
+        }
+
+        //flash the red and blue lights
+        unsigned long currentMillis = millis(); // Get the current time
+        if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+          previousMillis = currentMillis; // Store the current time
+          ledState = !ledState; // Change the state of the LED
+          digitalWrite(RedLights, ledState); // Turn on RedLights
+          digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+        }
+    }
+  }
 }
 
 void loop() {
-  
-   delay(2000); // Debounce delay
-    display.clearDisplay();           // clear the display
-    display.setCursor(0,0);          // set cursor to top left corner
-    display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-    display.display();               // update the display
-
-    delay(2000); // Debounce delay
-
-    digitalWrite(RedLights, HIGH); // Turn on RedLights
-    delay(1000); // Keep the lights on for 1 second
-    digitalWrite(RedLights, LOW); // Turn off RedLights
-    display.clearDisplay();           // clear the display
-    display.setCursor(0,0);          // set cursor to top left corner
-    display.drawBitmap(0, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-    display.display();               // update the display
+  // Check if the game is running
+  if(game_running == true){
+    play_game(); // Call the play_game function to run the game
+  }
+  else {
+    // If the game is not running, turn off the lights
+    digitalWrite(RedLights, LOW); // Turn on RedLights
+    digitalWrite(GreenLights, LOW); // Turn on GreenLights
+    //display win or loose
+    display.clearDisplay(); // Clear the display
+    display.setCursor(10, 20); // Set cursor to top left corner
+    display.setTextSize(2); // Set text size to 2
+    display.setTextColor(SSD1306_WHITE); // Set text color to white
+    if(cow_position >= -5 && cow_position <= 5) {
+      display.print("You Win!"); // Print "You Win!" on the display
+      display.display(); // Update the display
+    } else {
+      display.print("You Lose!"); // Print "You Lose!" on the display
+      display.display(); // Update the display
+    }
+  }
 }
