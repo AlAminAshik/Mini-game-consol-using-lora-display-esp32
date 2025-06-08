@@ -149,18 +149,33 @@ const unsigned char cowFilled [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+#define playButton 25
+#define RedLights 17
+#define GreenLights 21
+
+ICACHE_RAM_ATTR void Play_button_pressed() {
+  Serial.println("Play button pressed!");
+    digitalWrite(GreenLights, LOW); // Turn off GreenLights
+}
+
 
 void setup() {
-    //On Heltec boards, the OLED is built-in and powered via GPIO 16. 
-    //It must be pulled HIGH before the OLED is usable.
-    pinMode(16, OUTPUT);       // Power control for OLED
-    digitalWrite(16, HIGH);    // Turn on the OLED
-    delay(100);                // Allow time for OLED to power up
 
   Serial.begin(115200); // Initialize serial communication for debugging
   Wire.begin(4, 15); // Needs to come before display.begin() is used
   Serial.println("LoRa Receiver");
 
+  pinMode(playButton, INPUT_PULLUP); // Set play button pin as input with pull-up resistor
+  attachInterrupt(digitalPinToInterrupt(playButton), Play_button_pressed, FALLING); // Attach interrupt to play button for falling edge
+  
+  pinMode(RedLights, OUTPUT); // Set RedLights pin as output
+  pinMode(GreenLights, OUTPUT); // Set GreenLights pin as output
+
+  //On Heltec boards, the OLED is built-in and powered via GPIO 16 and a FET. 
+  //It must be pulled HIGH before the OLED is usable.
+  pinMode(16, OUTPUT);       // Power control for OLED
+  digitalWrite(16, HIGH);    // Turn on the mosfet connected to OLED
+  delay(100);                // Allow time for OLED to power up
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, i2c_Address)) {
   Serial.println(F("SSD1306 allocation failed"));
@@ -168,30 +183,49 @@ void setup() {
   }
   Serial.println("Display Initialized OK!");
   
-
   display.clearDisplay();           // clear the display
   display.setTextSize(2);          // set text size to 2
   display.setTextColor(SSD1306_WHITE); // set text color to white
-  display.setCursor(0,0);          // set cursor to top left corner
-  display.print("Waiting!"); // print "Lora init OK!" on the display
+  display.setCursor(14,0);          // set cursor to top left corner
+  display.print("Hamba");         // print "Hamba" on the display
+  display.setCursor(14,20);         // set cursor to next line
+  display.print("Game!!");           // print "Game!!" on the display
   display.display();               // update the display
+  // Draw loading bar border
+  display.drawRect(14, 40, 100, 10, SSD1306_WHITE);
+  display.display();
+  // Animate loading bar
+  for (int i = 0; i <= 100; i += 5) {
+    int barWidth = i;
+    display.fillRect(15, 41, barWidth, 8, SSD1306_WHITE);
+    
+    // Percentage text
+    display.setCursor(54, 55);
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE, SSD1306_BLACK); // overwrite old text
+    display.print(i);
+    display.print("%");
+
+    display.display();
+    delay(150);
+  }
 }
 
 void loop() {
-  // Nothing to do here, as we are just initializing the display
-  // and waiting for LoRa data to be received.
-  // You can add your LoRa receiving code here later.
   
-  // For demonstration, we will just print a message every 5 seconds
-  delay(2000);
-  display.clearDisplay();           // clear the display
-  display.setCursor(0,0);          // set cursor to top left corner
-  display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-  display.display();               // update the display
+   delay(2000); // Debounce delay
+    display.clearDisplay();           // clear the display
+    display.setCursor(0,0);          // set cursor to top left corner
+    display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+    display.display();               // update the display
 
-  delay(2000);
-  display.clearDisplay();           // clear the display
-  display.setCursor(0,0);          // set cursor to top left corner
-  display.drawBitmap(0, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-  display.display();               // update the display
+    delay(2000); // Debounce delay
+
+    digitalWrite(RedLights, HIGH); // Turn on RedLights
+    delay(1000); // Keep the lights on for 1 second
+    digitalWrite(RedLights, LOW); // Turn off RedLights
+    display.clearDisplay();           // clear the display
+    display.setCursor(0,0);          // set cursor to top left corner
+    display.drawBitmap(0, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+    display.display();               // update the display
 }
