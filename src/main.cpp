@@ -151,13 +151,91 @@ const unsigned char cowFilled [] PROGMEM = {
 
 #define playButton 25
 #define RedLights 17
-#define GreenLights 13
+#define GreenLights 13 //pin 21 consumes too much power!
+#define Buzzer_pin 5 // Buzzer pin  
 
 int cow_position = 0; // Variable to hold the cow's position
 bool game_running = true; // Flag to indicate if the game is running
 
 unsigned long previousMillis = 0; //for flashing leds
 bool ledState = LOW; // Variable to hold the state of the LED
+
+
+void testdrawrect(void) {
+  display.clearDisplay();
+
+  for(int16_t i=0; i<display.height()/2; i+=2) {
+    display.drawRect(i, i, display.width()-2*i, display.height()-2*i, SSD1306_WHITE);
+    display.display(); // Update screen with each newly-drawn rectangle
+    delay(1);
+  }
+
+  delay(500);
+}
+
+void testfillrect(void) {
+
+  for(int16_t i=0; i<display.height()/2; i+=3) {
+    // The INVERSE color is used so rectangles alternate white/black
+    display.fillRect(i, i, display.width()-i*2, display.height()-i*2, SSD1306_INVERSE);
+    display.display(); // Update screen with each newly-drawn rectangle
+    delay(1);
+  }
+
+  delay(1000);
+}
+
+void testfillcircle(void) {
+  display.clearDisplay();
+
+  for(int16_t i=0; i<max(display.width(),display.height())/2; i+=3) {
+    // The INVERSE color is used so circles alternate white/black
+    display.fillCircle(display.width() / 2, display.height() / 2, i, SSD1306_INVERSE);
+    display.display(); // Update screen with each newly-drawn circle
+    delay(1);
+  }
+
+  delay(100);
+}
+
+//Starting Sound
+void playStartSound() {
+  tone(Buzzer_pin, 1000, 150);
+  delay(200);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 1500, 150);
+  delay(200);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 2000, 150);
+  delay(200);
+  noTone(Buzzer_pin);
+}
+
+// Winning Sound
+void playWinSound() {
+  tone(Buzzer_pin, 1500, 150);
+  delay(200);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 1800, 200);
+  delay(250);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 2200, 300);
+  delay(350);
+  noTone(Buzzer_pin);
+}
+
+//Losing Sound
+void playLoseSound() {
+  tone(Buzzer_pin, 1000, 300);
+  delay(350);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 600, 300);
+  delay(350);
+  noTone(Buzzer_pin);
+  tone(Buzzer_pin, 400, 400);
+  delay(500);
+  noTone(Buzzer_pin);
+}
 
 ICACHE_RAM_ATTR void Play_button_pressed() {
   Serial.println("Play button pressed!");
@@ -177,6 +255,8 @@ void setup() {
   
   pinMode(RedLights, OUTPUT); // Set RedLights pin as output
   pinMode(GreenLights, OUTPUT); // Set GreenLights pin as output
+  pinMode(Buzzer_pin, OUTPUT); // Set Buzzer pin as output
+  noTone(Buzzer_pin); // Ensure buzzer is off initially
 
   //On Heltec boards, the OLED is built-in and powered via GPIO 16 and a FET. 
   //It must be pulled HIGH before the OLED is usable.
@@ -229,8 +309,11 @@ void setup() {
   //wait until the play button is pressed
   while (digitalRead(playButton) == HIGH) {
     // Wait for the play button to be pressed
+    digitalWrite(RedLights, HIGH); // Turn off RedLights
+    digitalWrite(GreenLights, HIGH); // Turn off GreenLights
     delay(10); // Debounce delay
   }
+  playStartSound(); // Play the starting sound
   Serial.println("game started!");
 }
 
@@ -261,12 +344,39 @@ void play_game(){
   }
 }
 
+void celebration(){
+  testdrawrect();      // Draw rectangles (outlines)
+  testfillrect();      // Draw rectangles (filled)
+  testfillcircle();    // Draw circles (filled)
+
+  display.clearDisplay();           // clear the display
+  display.setTextSize(2);          // set text size to 2
+  display.setTextColor(SSD1306_WHITE); // set text color to white
+  display.setCursor(30,10);          // set cursor to top left corner
+  display.print("HAMBA ");     // printa "Received: " on the display
+  display.setCursor(15,30);         // set cursor to second line
+  display.print("MUBARAK!");     // print the received data on the display
+  display.display();               // update the display
+  
+  // Invert and restore display, pausing in-between
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(500);
+  // Invert and restore display, pausing in-between
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(500);
+}
+
 void loop() {
   // Check if the game is running
   if(game_running == true){
     play_game(); // Call the play_game function to run the game
   }
   else {
+    delay(200); //wait to show the last cow position frame
     // If the game is not running, turn off the lights
     digitalWrite(RedLights, LOW); // Turn on RedLights
     digitalWrite(GreenLights, LOW); // Turn on GreenLights
@@ -275,11 +385,40 @@ void loop() {
     display.setCursor(10, 20); // Set cursor to top left corner
     display.setTextSize(2); // Set text size to 2
     display.setTextColor(SSD1306_WHITE); // Set text color to white
-    if(cow_position >= -5 && cow_position <= 5) {
-      display.print("You Win!"); // Print "You Win!" on the display
+    if(cow_position >= -10 && cow_position <= -4) {
+      display.print("You Won!"); // Print "You Won!" on the display
+      playWinSound(); // Play the winning sound
+      display.setCursor(12, 40); // Set cursor to top left corner
+      display.setTextSize(1); // Set text size to 1
+      display.setTextColor(SSD1306_WHITE); // Set text color to white
+      display.print("Please Wait!"); // Print "Please Wait!" on the display
       display.display(); // Update the display
-    } else {
+      delay(1000); // Wait for 1 seconds to show the message
+      celebration(); // Call the celebration function to show the celebration graphics
+    
+      //wait until the play button is pressed to play again
+      while (digitalRead(playButton) == HIGH) {
+        // Wait for the play button to be pressed
+        digitalWrite(RedLights, HIGH); // Turn off RedLights
+        digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+        display.clearDisplay(); // Clear the display
+        display.setCursor(14, 15); // Set cursor to top left corner
+        display.setTextSize(2); // Set text size to 2
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("Hamba"); // Print "Hamba" on the display
+        display.setCursor(14, 35); // Set cursor to next line
+        display.print("Again!!"); // Print "Again!!" on the display
+        display.display(); // Update the display
+      }
+      Serial.println("game started!");
+    } 
+    else {
       display.print("You Lose!"); // Print "You Lose!" on the display
+      playLoseSound(); // Play the losing sound
+      display.setCursor(12, 40); // Set cursor to top left corner
+      display.setTextSize(1); // Set text size to 1
+      display.setTextColor(SSD1306_WHITE); // Set text color to white
+      display.print("Try Again!"); // Print "Try Again!" on the display
       display.display(); // Update the display
     }
   }
