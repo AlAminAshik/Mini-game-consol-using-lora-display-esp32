@@ -2,6 +2,7 @@
 #include <Wire.h>               // Include the Wire library for I2C communication
 #include <Adafruit_GFX.h>       // Include the Adafruit GFX library for graphics
 #include <Adafruit_SSD1306.h>   // Include the Adafruit SSD1306 library for OLED display
+#include "esp32-hal-ledc.h"
 
 //setup the display
 #define i2c_Address 0x3c //initialize with the I2C addr 0x3C Typically eBay OLED's
@@ -200,41 +201,36 @@ void testfillcircle(void) {
 
 //Starting Sound
 void playStartSound() {
-  tone(Buzzer_pin, 1000, 150);
+  ledcWriteTone(Buzzer_pin, 1000);
   delay(200);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 1500, 150);
+  ledcWriteTone(Buzzer_pin, 1500);
   delay(200);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 2000, 150);
+  ledcWriteTone(Buzzer_pin, 2000);
   delay(200);
-  noTone(Buzzer_pin);
+  ledcWriteTone(Buzzer_pin, 0);
 }
 
 // Winning Sound
 void playWinSound() {
-  tone(Buzzer_pin, 1500, 150);
+  ledcWriteTone(Buzzer_pin, 1500);
   delay(200);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 1800, 200);
+  ledcWriteTone(Buzzer_pin, 1800);
   delay(250);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 2200, 300);
+  ledcWriteTone(Buzzer_pin, 2200);
   delay(350);
-  noTone(Buzzer_pin);
+  ledcWriteTone(Buzzer_pin, 0);
 }
 
 //Losing Sound
 void playLoseSound() {
-  tone(Buzzer_pin, 1000, 300);
+  ledcWriteTone(Buzzer_pin, 1000);
   delay(350);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 600, 300);
+  ledcWriteTone(Buzzer_pin, 600);
   delay(350);
-  noTone(Buzzer_pin);
-  tone(Buzzer_pin, 400, 400);
+  ledcWriteTone(Buzzer_pin, 0);
+  ledcWriteTone(Buzzer_pin, 400);
   delay(500);
-  noTone(Buzzer_pin);
+  ledcWriteTone(Buzzer_pin, 0);
 }
 
 ICACHE_RAM_ATTR void Play_button_pressed() {
@@ -255,8 +251,7 @@ void setup() {
   
   pinMode(RedLights, OUTPUT); // Set RedLights pin as output
   pinMode(GreenLights, OUTPUT); // Set GreenLights pin as output
-  pinMode(Buzzer_pin, OUTPUT); // Set Buzzer pin as output
-  noTone(Buzzer_pin); // Ensure buzzer is off initially
+  ledcAttachChannel(Buzzer_pin, 5000, 8, 0);  // ledcAttach(pin, frequency, resolution, channel)
 
   //On Heltec boards, the OLED is built-in and powered via GPIO 16 and a FET. 
   //It must be pulled HIGH before the OLED is usable.
@@ -339,6 +334,10 @@ void play_game(){
           ledState = !ledState; // Change the state of the LED
           digitalWrite(RedLights, ledState); // Turn on RedLights
           digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+          //play buzzer sound
+          ledcWriteTone(Buzzer_pin, 1000);
+          delay(150);
+          ledcWriteTone(Buzzer_pin, 0);
         }
     }
   }
