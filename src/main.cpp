@@ -251,7 +251,8 @@ void setup() {
   
   pinMode(RedLights, OUTPUT); // Set RedLights pin as output
   pinMode(GreenLights, OUTPUT); // Set GreenLights pin as output
-  ledcAttachChannel(Buzzer_pin, 5000, 8, 0);  // ledcAttach(pin, frequency, resolution, channel)
+  ledcAttachChannel(Buzzer_pin, 5000, 8, 0);  // ledcAttachChannel(pin, frequency, resolution, channel)
+  ledcWriteTone(Buzzer_pin, 0); // Initialize buzzer to off
 
   //On Heltec boards, the OLED is built-in and powered via GPIO 16 and a FET. 
   //It must be pulled HIGH before the OLED is usable.
@@ -322,7 +323,7 @@ void play_game(){
         //hold outline of the cow
         display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
         display.display();            // update the display
-        delay(10);                        // wait for 10 milliseconds
+        delay(8);                        // wait for 10 milliseconds
         if(game_running == false){
           break; // Exit the loop if game is not running
         }
@@ -336,8 +337,9 @@ void play_game(){
           digitalWrite(GreenLights, !ledState); // Turn off GreenLights
           //play buzzer sound
           ledcWriteTone(Buzzer_pin, 1000);
-          delay(150);
-          ledcWriteTone(Buzzer_pin, 0);
+        }
+        else {
+          ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
         }
     }
   }
@@ -384,7 +386,7 @@ void loop() {
     display.setCursor(10, 20); // Set cursor to top left corner
     display.setTextSize(2); // Set text size to 2
     display.setTextColor(SSD1306_WHITE); // Set text color to white
-    if(cow_position >= -10 && cow_position <= -4) {
+    if(cow_position >= -10 && cow_position <= -6) {
       display.print("You Won!"); // Print "You Won!" on the display
       playWinSound(); // Play the winning sound
       display.setCursor(12, 40); // Set cursor to top left corner
@@ -408,6 +410,7 @@ void loop() {
         display.setCursor(14, 35); // Set cursor to next line
         display.print("Again!!"); // Print "Again!!" on the display
         display.display(); // Update the display
+        ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
       }
       Serial.println("game started!");
     } 
