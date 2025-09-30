@@ -152,6 +152,11 @@ const unsigned char cowFilled [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+
+//for number guess game
+int targetNumber = 0; 
+int currentNumber = 1;
+
 //button pin defined
 #define playButton 25
 volatile bool buttonPressed = false;
@@ -370,7 +375,7 @@ void setup() {
     display.print(i);
     display.print("%");
     display.display();
-    delay(150);
+    delay(100);
   }
 
   playStartSound(); // Play the starting sound
@@ -457,39 +462,131 @@ if(buttonPressed){
 }
 
 
+
+void play_number_guess_game(){
+  targetNumber = random(1, 11); // random 1–10
+  currentNumber = 1;
+
+  while(buttonPressed == false) { //loop until button is pressed
+    currentNumber = (currentNumber % 10) + 1;
+
+    display.clearDisplay(); 
+    //Target number at top 
+    display.setTextSize(2); 
+    display.setTextColor(SSD1306_WHITE); 
+    display.setCursor(16, 0); 
+    display.print("Target:"); 
+    display.setCursor(100, 0); 
+    display.print(targetNumber); 
+    // Circulating number at bottom 
+    display.setTextSize(4); 
+    display.setCursor(50, 30); 
+    display.print(currentNumber); 
+    display.display();
+    delay(150); // Small delay to allow display to update
+
+      //flash the red and blue lights
+    unsigned long currentMillis = millis(); // Get the current time
+    if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+      previousMillis = currentMillis; // Store the current time
+      ledState = !ledState; // Change the state of the LED
+      digitalWrite(RedLights, ledState); // Turn on RedLights
+      digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+      //play buzzer sound
+      ledcWriteTone(Buzzer_pin, 1000);
+    }
+    else {
+      ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
+    }
+  }
+
+  //check for win or lose condition
+  if(buttonPressed){
+    delay(200); //wait to show the last cow position frame
+    // If the game is not running, turn off the lights
+    digitalWrite(RedLights, LOW); // Turn on RedLights
+    digitalWrite(GreenLights, LOW); // Turn on GreenLights
+
+    if(currentNumber == targetNumber) {
+      playWinSound(); // Play the winning sound
+      celebration(); // Call the celebration function to show the celebration graphics
+    
+      //wait until the play button is pressed to play again
+      while (digitalRead(playButton) == HIGH) {
+        // Wait for the play button to be pressed
+        digitalWrite(RedLights, HIGH); // Turn off RedLights
+        digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+        display.clearDisplay(); // Clear the display
+        display.setCursor(14, 15); // Set cursor to top left corner
+        display.setTextSize(2); // Set text size to 2
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("Play"); // Print "Play" on the display
+        display.setCursor(14, 35); // Set cursor to next line
+        display.print("Again!!"); // Print "Again!!" on the display
+        display.display(); // Update the display
+        ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+      }
+      buttonPressed = false; //reset button pressed flag
+    } 
+    else {
+      playLoseSound(); // Play the losing sound
+      while (digitalRead(playButton) == HIGH) {
+        //display win or loose
+        display.clearDisplay(); // Clear the display
+        display.setCursor(10, 20); // Set cursor to top left corner
+        display.setTextSize(2); // Set text size to 2
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("You Lose!"); // Print "You Lose!" on the display
+        display.setCursor(12, 40); // Set cursor to top left corner
+        display.setTextSize(1); // Set text size to 1
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("Try Again!"); // Print "Try Again!" on the display
+        display.display(); // Update the display
+        }
+        buttonPressed = false; //reset button pressed flag
+      }
+    }
+}
+
+
+
 void loop() {
-   if (runHamba == false && runNumberGuess == false) {
-      drawMenu(); //show menu
-      //show menu until a game is selected
-      if (buttonPressed) {
-        buttonPressed = false;
+   if (runHamba == false && runNumberGuess == false) drawMenu(); //show menu when no gameq is running
+   else if (runHamba == true) play_hamba_game(); // Call the play_hamba_game function to run the game
+    else if (runNumberGuess == true) play_number_guess_game(); // Call the play_number_guess_game function to run the game
 
-        // Debounce check
-        delay(50);
-        if (digitalRead(playButton) == LOW) {
-          unsigned long pressDuration = 0;
-
-          // Wait until button released
-          while (digitalRead(playButton) == LOW) {
-            pressDuration = millis() - pressStartTime;
-            if (pressDuration > 1000 && !buttonHeld) {  // long press
-              buttonHeld = true;
-              menuAction(currentMenu);
-              break;
-            }
-          }
-
-          // If short press (less than 1s)
-          if (!buttonHeld) {
-            currentMenu = (currentMenu + 1) % menuCount;    //
-            drawMenu();
-          }
+    //exit from any game if button is held for more than 2 seconds
+    if (digitalRead(playButton) == LOW){
+      if(millis() - pressStartTime > 2000) {
+        if(digitalRead(playButton) == LOW) {
+          runHamba = false;
+          runNumberGuess = false;
         }
       }
     }
 
-  // Check if the game is running
-  if(runHamba == true){
-    play_hamba_game(); // Call the play_hamba_game function to run the game
-  }
+    //show menu until a game is selected
+    if (buttonPressed) {
+      buttonPressed = false;
+      // Debounce check
+      delay(50);
+      if (digitalRead(playButton) == LOW) {
+        unsigned long pressDuration = 0;
+
+        // Wait until button released
+        while (digitalRead(playButton) == LOW) {
+          pressDuration = millis() - pressStartTime;
+          if (pressDuration > 1000 && !buttonHeld) {  // long press
+            buttonHeld = true;
+              menuAction(currentMenu);
+              break;
+          }
+        }
+        // If short press (less than 1s)
+        if (!buttonHeld) {
+          currentMenu = (currentMenu + 1) % menuCount; // Move to next menu item
+          drawMenu();
+        }
+      }
+    }
 }
