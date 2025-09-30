@@ -233,6 +233,33 @@ void playLoseSound() {
   ledcWriteTone(Buzzer_pin, 0);
 }
 
+//celebration function
+void celebration(){
+  testdrawrect();      // Draw rectangles (outlines)
+  testfillrect();      // Draw rectangles (filled)
+  testfillcircle();    // Draw circles (filled)
+
+  display.clearDisplay();           // clear the display
+  display.setTextSize(2);          // set text size to 2
+  display.setTextColor(SSD1306_WHITE); // set text color to white
+  display.setCursor(30,10);          // set cursor to top left corner
+  display.print("You're ");     // printa "Received: " on the display
+  display.setCursor(15,30);         // set cursor to second line
+  display.print("a Winner!");     // print the received data on the display
+  display.display();               // update the display
+  
+  // Invert and restore display, pausing in-between
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(500);
+  // Invert and restore display, pausing in-between
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(500);
+}
+
 ICACHE_RAM_ATTR void Play_button_pressed() {
   Serial.println("Play button pressed!");
   game_running = !game_running; // Toggle game state
@@ -244,7 +271,6 @@ void setup() {
 
   Serial.begin(115200); // Initialize serial communication for debugging
   Wire.begin(4, 15); // Needs to come before display.begin() is used
-  Serial.println("LoRa Receiver");
 
   pinMode(playButton, INPUT_PULLUP); // Set play button pin as input with pull-up resistor
   attachInterrupt(digitalPinToInterrupt(playButton), Play_button_pressed, FALLING); // Attach interrupt to play button for falling edge
@@ -313,7 +339,7 @@ void setup() {
   Serial.println("game started!");
 }
 
-void play_game(){
+void play_hamba_game(){
     //run filled cow image
     if(game_running == true){
     for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
@@ -345,36 +371,11 @@ void play_game(){
   }
 }
 
-void celebration(){
-  testdrawrect();      // Draw rectangles (outlines)
-  testfillrect();      // Draw rectangles (filled)
-  testfillcircle();    // Draw circles (filled)
-
-  display.clearDisplay();           // clear the display
-  display.setTextSize(2);          // set text size to 2
-  display.setTextColor(SSD1306_WHITE); // set text color to white
-  display.setCursor(30,10);          // set cursor to top left corner
-  display.print("HAMBA ");     // printa "Received: " on the display
-  display.setCursor(15,30);         // set cursor to second line
-  display.print("MUBARAK!");     // print the received data on the display
-  display.display();               // update the display
-  
-  // Invert and restore display, pausing in-between
-  display.invertDisplay(true);
-  delay(500);
-  display.invertDisplay(false);
-  delay(500);
-  // Invert and restore display, pausing in-between
-  display.invertDisplay(true);
-  delay(500);
-  display.invertDisplay(false);
-  delay(500);
-}
 
 void loop() {
   // Check if the game is running
   if(game_running == true){
-    play_game(); // Call the play_game function to run the game
+    play_hamba_game(); // Call the play_hamba_game function to run the game
   }
   else {
     delay(200); //wait to show the last cow position frame
@@ -387,14 +388,7 @@ void loop() {
     display.setTextSize(2); // Set text size to 2
     display.setTextColor(SSD1306_WHITE); // Set text color to white
     if(cow_position >= -10 && cow_position <= -6) {
-      display.print("You Won!"); // Print "You Won!" on the display
       playWinSound(); // Play the winning sound
-      display.setCursor(12, 40); // Set cursor to top left corner
-      display.setTextSize(1); // Set text size to 1
-      display.setTextColor(SSD1306_WHITE); // Set text color to white
-      display.print("Please Wait!"); // Print "Please Wait!" on the display
-      display.display(); // Update the display
-      delay(1000); // Wait for 1 seconds to show the message
       celebration(); // Call the celebration function to show the celebration graphics
     
       //wait until the play button is pressed to play again
@@ -406,7 +400,7 @@ void loop() {
         display.setCursor(14, 15); // Set cursor to top left corner
         display.setTextSize(2); // Set text size to 2
         display.setTextColor(SSD1306_WHITE); // Set text color to white
-        display.print("Hamba"); // Print "Hamba" on the display
+        display.print("Play"); // Print "Play" on the display
         display.setCursor(14, 35); // Set cursor to next line
         display.print("Again!!"); // Print "Again!!" on the display
         display.display(); // Update the display
