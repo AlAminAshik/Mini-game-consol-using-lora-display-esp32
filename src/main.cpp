@@ -13,6 +13,8 @@
 //TwoWire twi = TwoWire(1); // create our own TwoWire instance for I2C communication
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+//for hamba game
+int cow_position = 0; // Variable to hold the cow's position
 #define LOGO_HEIGHT   64
 #define LOGO_WIDTH    128
 // 'cow stroke image-01-01', 128x64px
@@ -150,17 +152,68 @@ const unsigned char cowFilled [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
+//button pin defined
 #define playButton 25
+volatile bool buttonPressed = false;
+volatile unsigned long pressStartTime = 0;
+volatile bool buttonHeld = false;
+
+//other pins defined
 #define RedLights 17
 #define GreenLights 13 //pin 21 consumes too much power!
 #define Buzzer_pin 5 // Buzzer pin  
 
-int cow_position = 0; // Variable to hold the cow's position
-bool game_running = true; // Flag to indicate if the game is running
+bool runHamba = false; // Flag to indicate if the game is running
+bool runNumberGuess = false; // Flag to indicate if the game is running
 
 unsigned long previousMillis = 0; //for flashing leds
 bool ledState = LOW; // Variable to hold the state of the LED
 
+// Menu variables
+int currentMenu = 0;   // 0 = first game, 1 = second game
+const int menuCount = 2;
+bool arrowToggle = false;
+
+void drawMenu() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  // Menu item 1
+  display.setCursor(20, 20);
+  display.print("Hamba Game");
+  // Menu item 2
+  display.setCursor(20, 40);
+  display.print("Number Guess");
+
+  // Draw arrow
+  if (currentMenu == 0) {
+    display.setCursor(5, 20);
+    display.print(">");
+  } else {
+    display.setCursor(5, 40);
+    display.print(">");
+  }
+
+  display.display();
+}
+
+void menuAction(int menuIndex) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  if (menuIndex == 0) {
+    display.setCursor(0, 20);
+    runHamba = true;  // Set flag to run Hamba game
+    Serial.println("Function 1 executed");
+  } else if (menuIndex == 1) {
+    display.setCursor(0, 20);
+    runNumberGuess = true;  // Set flag to run Number Guess game
+    Serial.println("Function 2 executed");
+  }
+  display.display();
+}
 
 void testdrawrect(void) {
   display.clearDisplay();
@@ -262,8 +315,11 @@ void celebration(){
 
 ICACHE_RAM_ATTR void Play_button_pressed() {
   Serial.println("Play button pressed!");
-  game_running = !game_running; // Toggle game state
-  //delay(100); // Debounce delay
+  if (digitalRead(playButton) == LOW) {
+    pressStartTime = millis();
+    buttonHeld = false;
+    buttonPressed = true;
+  }
 }
 
 
@@ -307,86 +363,58 @@ void setup() {
   for (int i = 0; i <= 100; i += 5) {
     int barWidth = i;
     display.fillRect(15, 41, barWidth, 8, SSD1306_WHITE);
-    
     // Percentage text
     display.setCursor(54, 55);
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE, SSD1306_BLACK); // overwrite old text
     display.print(i);
     display.print("%");
-
     display.display();
     delay(150);
   }
-  game_running = false; // Set game_running to false initially
-  //show the start game message
-  delay(1000);
-  display.clearDisplay();
-  display.setCursor(20, 28);
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE); // Set text color to white
-  display.println("PRESS TO START!");
-  display.display();
-  Serial.println("Waiting for play button press...");
-  //wait until the play button is pressed
-  while (digitalRead(playButton) == HIGH) {
-    // Wait for the play button to be pressed
-    digitalWrite(RedLights, HIGH); // Turn off RedLights
-    digitalWrite(GreenLights, HIGH); // Turn off GreenLights
-    delay(10); // Debounce delay
-  }
+
   playStartSound(); // Play the starting sound
-  Serial.println("game started!");
+  Serial.println("console started!");
 }
+
 
 void play_hamba_game(){
-    //run filled cow image
-    if(game_running == true){
-    for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
-        display.clearDisplay();           // clear the display
-        display.setCursor(0,0);          // set cursor to top left corner
-        display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-        //hold outline of the cow
-        display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-        display.display();            // update the display
-        delay(8);                        // wait for 10 milliseconds
-        if(game_running == false){
-          break; // Exit the loop if game is not running
-        }
-
-        //flash the red and blue lights
-        unsigned long currentMillis = millis(); // Get the current time
-        if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
-          previousMillis = currentMillis; // Store the current time
-          ledState = !ledState; // Change the state of the LED
-          digitalWrite(RedLights, ledState); // Turn on RedLights
-          digitalWrite(GreenLights, !ledState); // Turn off GreenLights
-          //play buzzer sound
-          ledcWriteTone(Buzzer_pin, 1000);
-        }
-        else {
-          ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
-        }
+//run filled cow image
+for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+    display.clearDisplay();           // clear the display
+    display.setCursor(0,0);          // set cursor to top left corner
+    display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+    //hold outline of the cow
+    display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+    display.display();            // update the display
+    delay(8);                      // wait for 10 milliseconds
+    
+    //loop until button is pressed
+    if(buttonPressed == true) { //stop when button is pressed
+      break;
     }
-  }
+    
+    //flash the red and blue lights
+    unsigned long currentMillis = millis(); // Get the current time
+    if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+      previousMillis = currentMillis; // Store the current time
+      ledState = !ledState; // Change the state of the LED
+      digitalWrite(RedLights, ledState); // Turn on RedLights
+      digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+      //play buzzer sound
+      ledcWriteTone(Buzzer_pin, 1000);
+    }
+    else {
+      ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
+    }
 }
 
-
-void loop() {
-  // Check if the game is running
-  if(game_running == true){
-    play_hamba_game(); // Call the play_hamba_game function to run the game
-  }
-  else {
+if(buttonPressed){
     delay(200); //wait to show the last cow position frame
     // If the game is not running, turn off the lights
     digitalWrite(RedLights, LOW); // Turn on RedLights
     digitalWrite(GreenLights, LOW); // Turn on GreenLights
-    //display win or loose
-    display.clearDisplay(); // Clear the display
-    display.setCursor(10, 20); // Set cursor to top left corner
-    display.setTextSize(2); // Set text size to 2
-    display.setTextColor(SSD1306_WHITE); // Set text color to white
+
     if(cow_position >= -10 && cow_position <= -6) {
       playWinSound(); // Play the winning sound
       celebration(); // Call the celebration function to show the celebration graphics
@@ -406,16 +434,62 @@ void loop() {
         display.display(); // Update the display
         ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
       }
-      Serial.println("game started!");
+      buttonPressed = false; //reset button pressed flag
     } 
     else {
-      display.print("You Lose!"); // Print "You Lose!" on the display
       playLoseSound(); // Play the losing sound
-      display.setCursor(12, 40); // Set cursor to top left corner
-      display.setTextSize(1); // Set text size to 1
-      display.setTextColor(SSD1306_WHITE); // Set text color to white
-      display.print("Try Again!"); // Print "Try Again!" on the display
-      display.display(); // Update the display
+      while (digitalRead(playButton) == HIGH) {
+        //display win or loose
+        display.clearDisplay(); // Clear the display
+        display.setCursor(10, 20); // Set cursor to top left corner
+        display.setTextSize(2); // Set text size to 2
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("You Lose!"); // Print "You Lose!" on the display
+        display.setCursor(12, 40); // Set cursor to top left corner
+        display.setTextSize(1); // Set text size to 1
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("Try Again!"); // Print "Try Again!" on the display
+        display.display(); // Update the display
+        }
+        buttonPressed = false; //reset button pressed flag
+      }
     }
+}
+
+
+void loop() {
+   if (runHamba == false && runNumberGuess == false) {
+      drawMenu(); //show menu
+      //show menu until a game is selected
+      if (buttonPressed) {
+        buttonPressed = false;
+
+        // Debounce check
+        delay(50);
+        if (digitalRead(playButton) == LOW) {
+          unsigned long pressDuration = 0;
+
+          // Wait until button released
+          while (digitalRead(playButton) == LOW) {
+            pressDuration = millis() - pressStartTime;
+            if (pressDuration > 1000 && !buttonHeld) {  // long press
+              buttonHeld = true;
+              menuAction(currentMenu);
+              break;
+            }
+          }
+
+          // If short press (less than 1s)
+          if (!buttonHeld) {
+            currentMenu = (currentMenu + 1) % menuCount;    //
+            drawMenu();
+          }
+        }
+      }
+    }
+
+  // Check if the game is running
+  if(runHamba == true){
+    play_hamba_game(); // Call the play_hamba_game function to run the game
   }
 }
