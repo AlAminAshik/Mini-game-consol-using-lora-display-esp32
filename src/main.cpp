@@ -330,9 +330,14 @@ ICACHE_RAM_ATTR void Play_button_pressed() {
 
 
 void setup() {
-
   Serial.begin(115200); // Initialize serial communication for debugging
+
   Wire.begin(4, 15); // Needs to come before display.begin() is used
+  //On Heltec boards, the OLED is built-in and powered via GPIO 16 and a FET. 
+  //It must be pulled HIGH before the OLED is usable.
+  pinMode(16, OUTPUT);       // Power control for OLED
+  digitalWrite(16, HIGH);    // Turn on the mosfet connected to OLED
+  delay(100);                // Allow time for OLED to power up
 
   pinMode(playButton, INPUT_PULLUP); // Set play button pin as input with pull-up resistor
   attachInterrupt(digitalPinToInterrupt(playButton), Play_button_pressed, FALLING); // Attach interrupt to play button for falling edge
