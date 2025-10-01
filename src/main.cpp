@@ -169,7 +169,8 @@ volatile bool buttonHeld = false;
 #define Buzzer_pin 5 // Buzzer pin  
 
 bool runHamba = false; // Flag to indicate if the game is running
-bool runNumberGuess = false; // Flag to indicate if the game is running
+bool runNumberHold = false; // Flag to indicate if the game is running
+bool endGame = true; // Flag to indicate if the game is over
 
 unsigned long previousMillis = 0; //for flashing leds
 bool ledState = LOW; // Variable to hold the state of the LED
@@ -177,7 +178,6 @@ bool ledState = LOW; // Variable to hold the state of the LED
 // Menu variables
 int currentMenu = 0;   // 0 = first game, 1 = second game
 const int menuCount = 2;
-bool arrowToggle = false;
 
 void drawMenu() {
   display.clearDisplay();
@@ -186,10 +186,10 @@ void drawMenu() {
 
   // Menu item 1
   display.setCursor(20, 20);
-  display.print("Hamba Game");
+  display.print("Play Hamba Game");
   // Menu item 2
   display.setCursor(20, 40);
-  display.print("Number Guess");
+  display.print("Play Number Hold");
 
   // Draw arrow
   if (currentMenu == 0) {
@@ -214,7 +214,8 @@ void menuAction(int menuIndex) {
     Serial.println("Function 1 executed");
   } else if (menuIndex == 1) {
     display.setCursor(0, 20);
-    runNumberGuess = true;  // Set flag to run Number Guess game
+    targetNumber = random(1, 11); // Set a initial random target number between 1 and 10
+    runNumberHold = true;  // Set flag to run Number Hold game
     Serial.println("Function 2 executed");
   }
   display.display();
@@ -463,11 +464,8 @@ if(buttonPressed){
 
 
 
-void play_number_guess_game(){
-  targetNumber = random(1, 11); // random 1–10
-  currentNumber = 1;
-
-  while(buttonPressed == false) { //loop until button is pressed
+void play_number_hold_game(){
+  // while(buttonPressed == false) { //loop until button is pressed
     currentNumber = (currentNumber % 10) + 1;
 
     display.clearDisplay(); 
@@ -498,7 +496,7 @@ void play_number_guess_game(){
     else {
       ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
     }
-  }
+  // }
 
   //check for win or lose condition
   if(buttonPressed){
@@ -545,22 +543,28 @@ void play_number_guess_game(){
         }
         buttonPressed = false; //reset button pressed flag
       }
+    targetNumber = random(1, 11); // reset random 1–10
+    currentNumber = 0;  //reset current number to 0
     }
 }
 
 
 
 void loop() {
-   if (runHamba == false && runNumberGuess == false) drawMenu(); //show menu when no gameq is running
-   else if (runHamba == true) play_hamba_game(); // Call the play_hamba_game function to run the game
-    else if (runNumberGuess == true) play_number_guess_game(); // Call the play_number_guess_game function to run the game
+   if (endGame) drawMenu(); //show menu when no gameq is running
+   else if (runHamba == true && !endGame) play_hamba_game(); // Call the play_hamba_game function to run the game
+   else if (runNumberHold == true && !endGame) play_number_hold_game(); // Call the play_number_hold_game function to run the game
 
     //exit from any game if button is held for more than 2 seconds
     if (digitalRead(playButton) == LOW){
       if(millis() - pressStartTime > 2000) {
         if(digitalRead(playButton) == LOW) {
+          digitalWrite(RedLights, LOW); // Turn off RedLights
+          digitalWrite(GreenLights, LOW); // Turn off GreenLights
+          ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
           runHamba = false;
-          runNumberGuess = false;
+          runNumberHold = false;
+          endGame = true;   // Set flag to indicate game is over
         }
       }
     }
@@ -577,7 +581,8 @@ void loop() {
         while (digitalRead(playButton) == LOW) {
           pressDuration = millis() - pressStartTime;
           if (pressDuration > 1000 && !buttonHeld) {  // long press
-            buttonHeld = true;
+              buttonHeld = true;
+              endGame = false; // Exit menu mode
               menuAction(currentMenu);
               break;
           }
