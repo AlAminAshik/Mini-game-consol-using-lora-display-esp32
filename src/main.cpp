@@ -171,6 +171,7 @@ volatile bool buttonHeld = false;
 bool runHamba = false; // Flag to indicate if the game is running
 bool runNumberHold = false; // Flag to indicate if the game is running
 bool endGame = true; // Flag to indicate if the game is over
+uint16_t diffLevel = 1; //difficulty level for games
 
 unsigned long previousMillis = 0; //for flashing leds
 bool ledState = LOW; // Variable to hold the state of the LED
@@ -221,30 +222,6 @@ void menuAction(int menuIndex) {
   display.display();
 }
 
-void testdrawrect(void) {
-  display.clearDisplay();
-
-  for(int16_t i=0; i<display.height()/2; i+=2) {
-    display.drawRect(i, i, display.width()-2*i, display.height()-2*i, SSD1306_WHITE);
-    display.display(); // Update screen with each newly-drawn rectangle
-    delay(1);
-  }
-
-  delay(500);
-}
-
-void testfillrect(void) {
-
-  for(int16_t i=0; i<display.height()/2; i+=3) {
-    // The INVERSE color is used so rectangles alternate white/black
-    display.fillRect(i, i, display.width()-i*2, display.height()-i*2, SSD1306_INVERSE);
-    display.display(); // Update screen with each newly-drawn rectangle
-    delay(1);
-  }
-
-  delay(1000);
-}
-
 void testfillcircle(void) {
   display.clearDisplay();
 
@@ -292,10 +269,20 @@ void playLoseSound() {
   ledcWriteTone(Buzzer_pin, 0);
 }
 
+//show the next level text on screen
+void showextLevel(int8_t level){
+  display.clearDisplay(); // Clear the display
+  display.setCursor(14, 15); // Set cursor to top left corner
+  display.setTextSize(2); // Set text size to 2
+  display.setTextColor(SSD1306_WHITE); // Set text color to white
+  display.print("Press for"); // Print "Press for" on the display
+  display.setCursor(14, 35); // Set cursor to next line
+  display.print("level " + String(level)); // Print "level X" on the display
+  display.display(); // Update the display
+}
+
 //celebration function
 void celebration(){
-  testdrawrect();      // Draw rectangles (outlines)
-  testfillrect();      // Draw rectangles (filled)
   testfillcircle();    // Draw circles (filled)
 
   display.clearDisplay();           // clear the display
@@ -307,11 +294,6 @@ void celebration(){
   display.print("a Winner!");     // print the received data on the display
   display.display();               // update the display
   
-  // Invert and restore display, pausing in-between
-  display.invertDisplay(true);
-  delay(500);
-  display.invertDisplay(false);
-  delay(500);
   // Invert and restore display, pausing in-between
   display.invertDisplay(true);
   delay(500);
@@ -390,35 +372,39 @@ void setup() {
 
 
 void play_hamba_game(){
-//run filled cow image
-for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
-    display.clearDisplay();           // clear the display
-    display.setCursor(0,0);          // set cursor to top left corner
-    display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-    //hold outline of the cow
-    display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-    display.display();            // update the display
-    delay(8);                      // wait for 10 milliseconds
-    
-    //loop until button is pressed
-    if(buttonPressed == true) { //stop when button is pressed
-      break;
-    }
-    
-    //flash the red and blue lights
-    unsigned long currentMillis = millis(); // Get the current time
-    if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
-      previousMillis = currentMillis; // Store the current time
-      ledState = !ledState; // Change the state of the LED
-      digitalWrite(RedLights, ledState); // Turn on RedLights
-      digitalWrite(GreenLights, !ledState); // Turn off GreenLights
-      //play buzzer sound
-      ledcWriteTone(Buzzer_pin, 1000);
-    }
-    else {
-      ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
-    }
-}
+  //run filled cow image
+  for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+      display.clearDisplay();           // clear the display
+      display.setCursor(0,0);          // set cursor to top left corner
+      display.setTextSize(1);          // set text size to 1
+      display.setTextColor(SSD1306_WHITE); // set text color to white
+      display.print("Level: "); // show level text
+      display.print(diffLevel); // print the current difficulty level
+      display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+      //hold outline of the cow
+      display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+      display.display();            // update the display
+      delay(40-(int)pow(diffLevel, 2)*1.5);                      // wait for difflevel milliseconds
+      
+      //loop until button is pressed
+      if(buttonPressed == true) { //stop when button is pressed
+        break;
+      }
+      
+      //flash the red and blue lights
+      unsigned long currentMillis = millis(); // Get the current time
+      if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+        previousMillis = currentMillis; // Store the current time
+        ledState = !ledState; // Change the state of the LED
+        digitalWrite(RedLights, ledState); // Turn on RedLights
+        digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+        //play buzzer sound
+        ledcWriteTone(Buzzer_pin, 1000);
+      }
+      else {
+        ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
+      }
+  }
 
 if(buttonPressed){
     delay(200); //wait to show the last cow position frame
@@ -428,26 +414,49 @@ if(buttonPressed){
 
     if(cow_position >= -10 && cow_position <= -6) {
       playWinSound(); // Play the winning sound
-      celebration(); // Call the celebration function to show the celebration graphics
-    
+      digitalWrite(RedLights, HIGH); // Turn off RedLights
+      digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+  
+      switch (diffLevel) {
+        case 1:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 2:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 3:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 4:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 5:
+          celebration(); // Call the celebration function to show the celebration graphics
+          display.clearDisplay(); // Clear the display
+          display.setCursor(14, 15); // Set cursor to top left corner
+          display.setTextSize(2); // Set text size to 2
+          display.setTextColor(SSD1306_WHITE); // Set text color to white
+          display.print("Play"); // Print "Play" on the display
+          display.setCursor(14, 35); // Set cursor to next line
+          display.print("Again!!"); // Print "Again!!" on the display
+          display.display(); // Update the display
+          ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+          diffLevel = 1; //reset difficulty level
+          break;
+      }
       //wait until the play button is pressed to play again
       while (digitalRead(playButton) == HIGH) {
-        // Wait for the play button to be pressed
-        digitalWrite(RedLights, HIGH); // Turn off RedLights
-        digitalWrite(GreenLights, HIGH); // Turn off GreenLights
-        display.clearDisplay(); // Clear the display
-        display.setCursor(14, 15); // Set cursor to top left corner
-        display.setTextSize(2); // Set text size to 2
-        display.setTextColor(SSD1306_WHITE); // Set text color to white
-        display.print("Play"); // Print "Play" on the display
-        display.setCursor(14, 35); // Set cursor to next line
-        display.print("Again!!"); // Print "Again!!" on the display
-        display.display(); // Update the display
-        ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+        delay(50);
       }
       buttonPressed = false; //reset button pressed flag
-    } 
+      }
+
     else {
+      diffLevel = 1; //reset difficulty level
       playLoseSound(); // Play the losing sound
       while (digitalRead(playButton) == HIGH) {
         //display win or loose
@@ -473,20 +482,27 @@ void play_number_hold_game(){
   // while(buttonPressed == false) { //loop until button is pressed
     currentNumber = (currentNumber % 10) + 1;
 
-    display.clearDisplay(); 
+    display.clearDisplay();
+    //show level at top left
+      display.setCursor(0,0);          // set cursor to top left corner
+      display.setTextSize(1);          // set text size to 1
+      display.setTextColor(SSD1306_WHITE); // set text color to white
+      display.print("L: "); // show level text
+      display.print(diffLevel); // print the current difficulty level
     //Target number at top 
     display.setTextSize(2); 
     display.setTextColor(SSD1306_WHITE); 
-    display.setCursor(16, 0); 
+    display.setCursor(16, 45); 
     display.print("Target:"); 
-    display.setCursor(100, 0); 
+    display.setCursor(100, 45); 
     display.print(targetNumber); 
     // Circulating number at bottom 
     display.setTextSize(4); 
-    display.setCursor(50, 30); 
+    display.setCursor(50, 10); 
     display.print(currentNumber); 
     display.display();
-    delay(150); // Small delay to allow display to update
+    //delay(150); // Small delay to allow display to update
+    delay(150-(int)pow(diffLevel, 3));                      // wait for difflevel milliseconds
 
       //flash the red and blue lights
     unsigned long currentMillis = millis(); // Get the current time
@@ -512,26 +528,51 @@ void play_number_hold_game(){
 
     if(currentNumber == targetNumber) {
       playWinSound(); // Play the winning sound
-      celebration(); // Call the celebration function to show the celebration graphics
+      digitalWrite(RedLights, HIGH); // Turn off RedLights
+      digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+
+      switch (diffLevel) {
+        case 1:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 2:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 3:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 4:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 5:
+          celebration(); // Call the celebration function to show the celebration graphics
+          display.clearDisplay(); // Clear the display
+          display.setCursor(14, 15); // Set cursor to top left corner
+          display.setTextSize(2); // Set text size to 2
+          display.setTextColor(SSD1306_WHITE); // Set text color to white
+          display.print("Play"); // Print "Play" on the display
+          display.setCursor(14, 35); // Set cursor to next line
+          display.print("Again!!"); // Print "Again!!" on the display
+          display.display(); // Update the display
+          ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+          diffLevel = 1; //reset difficulty level
+          break;
+      }
     
       //wait until the play button is pressed to play again
       while (digitalRead(playButton) == HIGH) {
-        // Wait for the play button to be pressed
-        digitalWrite(RedLights, HIGH); // Turn off RedLights
-        digitalWrite(GreenLights, HIGH); // Turn off GreenLights
-        display.clearDisplay(); // Clear the display
-        display.setCursor(14, 15); // Set cursor to top left corner
-        display.setTextSize(2); // Set text size to 2
-        display.setTextColor(SSD1306_WHITE); // Set text color to white
-        display.print("Play"); // Print "Play" on the display
-        display.setCursor(14, 35); // Set cursor to next line
-        display.print("Again!!"); // Print "Again!!" on the display
-        display.display(); // Update the display
-        ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+        delay(50);
       }
       buttonPressed = false; //reset button pressed flag
-    } 
+      }
+
+
     else {
+      diffLevel = 1; //reset difficulty level
       playLoseSound(); // Play the losing sound
       while (digitalRead(playButton) == HIGH) {
         //display win or loose
@@ -569,7 +610,8 @@ void loop() {
           ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
           runHamba = false;
           runNumberHold = false;
-          endGame = true;   // Set flag to indicate game is over
+          endGame = true;  // Set flag to indicate game is over
+          diffLevel = 1; //reset difficulty level
         }
       }
     }
