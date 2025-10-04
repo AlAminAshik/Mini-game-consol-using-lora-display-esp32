@@ -157,6 +157,11 @@ const unsigned char cowFilled [] PROGMEM = {
 int targetNumber = 0; 
 int currentNumber = 1;
 
+//for cowRunning game
+int cowPosition = 0; // Current position of the cow
+int cowSpeed = 1; // Speed of the cow
+unsigned long lastObstacleTime = 0; // Time when the last obstacle was generated
+
 //button pin defined
 #define playButton 25
 volatile bool buttonPressed = false;
@@ -371,26 +376,124 @@ void setup() {
 }
 
 
+// void play_hamba_game(){
+//   //run filled cow image
+//   for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+//       display.clearDisplay();           // clear the display
+//       display.setCursor(0,0);          // set cursor to top left corner
+//       display.setTextSize(1);          // set text size to 1
+//       display.setTextColor(SSD1306_WHITE); // set text color to white
+//       display.print("Level: "); // show level text
+//       display.print(diffLevel); // print the current difficulty level
+//       display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+//       //hold outline of the cow
+//       display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+//       display.display();            // update the display
+//       delay(40-(int)pow(diffLevel, 2)*1.5);                      // wait for difflevel milliseconds
+      
+//       //loop until button is pressed
+//       if(buttonPressed == true) { //stop when button is pressed
+//         break;
+//       }
+      
+//       //flash the red and blue lights
+//       unsigned long currentMillis = millis(); // Get the current time
+//       if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+//         previousMillis = currentMillis; // Store the current time
+//         ledState = !ledState; // Change the state of the LED
+//         digitalWrite(RedLights, ledState); // Turn on RedLights
+//         digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+//         //play buzzer sound
+//         ledcWriteTone(Buzzer_pin, 1000);
+//       }
+//       else {
+//         ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
+//       }
+//   }
+
+// if(buttonPressed){
+//     delay(200); //wait to show the last cow position frame
+//     // If the game is not running, turn off the lights
+//     digitalWrite(RedLights, LOW); // Turn on RedLights
+//     digitalWrite(GreenLights, LOW); // Turn on GreenLights
+
+//     if(cow_position >= -10 && cow_position <= -6) {
+//       playWinSound(); // Play the winning sound
+//       digitalWrite(RedLights, HIGH); // Turn off RedLights
+//       digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+  
+//       switch (diffLevel) {
+//         case 1:
+//           diffLevel = diffLevel + 1; //increase difficulty level for next round
+//           showextLevel(diffLevel);
+//           break;
+//         case 2:
+//           diffLevel = diffLevel + 1; //increase difficulty level for next round
+//           showextLevel(diffLevel);
+//           break;
+//         case 3:
+//           diffLevel = diffLevel + 1; //increase difficulty level for next round
+//           showextLevel(diffLevel);
+//           break;
+//         case 4:
+//           diffLevel = diffLevel + 1; //increase difficulty level for next round
+//           showextLevel(diffLevel);
+//           break;
+//         case 5:
+//           celebration(); // Call the celebration function to show the celebration graphics
+//           display.clearDisplay(); // Clear the display
+//           display.setCursor(14, 15); // Set cursor to top left corner
+//           display.setTextSize(2); // Set text size to 2
+//           display.setTextColor(SSD1306_WHITE); // Set text color to white
+//           display.print("Play"); // Print "Play" on the display
+//           display.setCursor(14, 35); // Set cursor to next line
+//           display.print("Again!!"); // Print "Again!!" on the display
+//           display.display(); // Update the display
+//           ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+//           diffLevel = 1; //reset difficulty level
+//           break;
+//       }
+//       //wait until the play button is pressed to play again
+//       while (digitalRead(playButton) == HIGH) {
+//         delay(50);
+//       }
+//       buttonPressed = false; //reset button pressed flag
+//       }
+
+//     else {
+//       diffLevel = 1; //reset difficulty level
+//       playLoseSound(); // Play the losing sound
+//       while (digitalRead(playButton) == HIGH) {
+//         //display win or loose
+//         display.clearDisplay(); // Clear the display
+//         display.setCursor(10, 20); // Set cursor to top left corner
+//         display.setTextSize(2); // Set text size to 2
+//         display.setTextColor(SSD1306_WHITE); // Set text color to white
+//         display.print("You Lose!"); // Print "You Lose!" on the display
+//         display.setCursor(12, 40); // Set cursor to top left corner
+//         display.setTextSize(1); // Set text size to 1
+//         display.setTextColor(SSD1306_WHITE); // Set text color to white
+//         display.print("Try Again!"); // Print "Try Again!" on the display
+//         display.display(); // Update the display
+//         }
+//         buttonPressed = false; //reset button pressed flag
+//       }
+//     }
+// }
+
 void play_hamba_game(){
-  //run filled cow image
-  for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+  const int boxHeight = 15;
+  unsigned long currentObstacleTime = millis();
+  if(currentObstacleTime - lastObstacleTime >= random(100,1000)) {
+    lastObstacleTime = currentObstacleTime; // Store the current time
+    for(int i=display.width(); i>=-4; i-=4) {
       display.clearDisplay();           // clear the display
-      display.setCursor(0,0);          // set cursor to top left corner
-      display.setTextSize(1);          // set text size to 1
-      display.setTextColor(SSD1306_WHITE); // set text color to white
-      display.print("Level: "); // show level text
-      display.print(diffLevel); // print the current difficulty level
-      display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-      //hold outline of the cow
-      display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-      display.display();            // update the display
-      delay(40-(int)pow(diffLevel, 2)*1.5);                      // wait for difflevel milliseconds
-      
-      //loop until button is pressed
-      if(buttonPressed == true) { //stop when button is pressed
-        break;
-      }
-      
+      //draw the ball
+      display.drawCircle(cowPosition, 32, 10, SSD1306_WHITE); // Draw circle
+      //draw the moving obstacle
+      display.fillRect(i, 64-boxHeight, 3, (boxHeight + random(0, 8)), SSD1306_WHITE); // Draw rectangle
+      display.display(); // Update screen with each newly-drawn rectangle
+
       //flash the red and blue lights
       unsigned long currentMillis = millis(); // Get the current time
       if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
@@ -404,76 +507,8 @@ void play_hamba_game(){
       else {
         ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
       }
-  }
-
-if(buttonPressed){
-    delay(200); //wait to show the last cow position frame
-    // If the game is not running, turn off the lights
-    digitalWrite(RedLights, LOW); // Turn on RedLights
-    digitalWrite(GreenLights, LOW); // Turn on GreenLights
-
-    if(cow_position >= -10 && cow_position <= -6) {
-      playWinSound(); // Play the winning sound
-      digitalWrite(RedLights, HIGH); // Turn off RedLights
-      digitalWrite(GreenLights, HIGH); // Turn off GreenLights
-  
-      switch (diffLevel) {
-        case 1:
-          diffLevel = diffLevel + 1; //increase difficulty level for next round
-          showextLevel(diffLevel);
-          break;
-        case 2:
-          diffLevel = diffLevel + 1; //increase difficulty level for next round
-          showextLevel(diffLevel);
-          break;
-        case 3:
-          diffLevel = diffLevel + 1; //increase difficulty level for next round
-          showextLevel(diffLevel);
-          break;
-        case 4:
-          diffLevel = diffLevel + 1; //increase difficulty level for next round
-          showextLevel(diffLevel);
-          break;
-        case 5:
-          celebration(); // Call the celebration function to show the celebration graphics
-          display.clearDisplay(); // Clear the display
-          display.setCursor(14, 15); // Set cursor to top left corner
-          display.setTextSize(2); // Set text size to 2
-          display.setTextColor(SSD1306_WHITE); // Set text color to white
-          display.print("Play"); // Print "Play" on the display
-          display.setCursor(14, 35); // Set cursor to next line
-          display.print("Again!!"); // Print "Again!!" on the display
-          display.display(); // Update the display
-          ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
-          diffLevel = 1; //reset difficulty level
-          break;
-      }
-      //wait until the play button is pressed to play again
-      while (digitalRead(playButton) == HIGH) {
-        delay(50);
-      }
-      buttonPressed = false; //reset button pressed flag
-      }
-
-    else {
-      diffLevel = 1; //reset difficulty level
-      playLoseSound(); // Play the losing sound
-      while (digitalRead(playButton) == HIGH) {
-        //display win or loose
-        display.clearDisplay(); // Clear the display
-        display.setCursor(10, 20); // Set cursor to top left corner
-        display.setTextSize(2); // Set text size to 2
-        display.setTextColor(SSD1306_WHITE); // Set text color to white
-        display.print("You Lose!"); // Print "You Lose!" on the display
-        display.setCursor(12, 40); // Set cursor to top left corner
-        display.setTextSize(1); // Set text size to 1
-        display.setTextColor(SSD1306_WHITE); // Set text color to white
-        display.print("Try Again!"); // Print "Try Again!" on the display
-        display.display(); // Update the display
-        }
-        buttonPressed = false; //reset button pressed flag
-      }
     }
+  }
 }
 
 
