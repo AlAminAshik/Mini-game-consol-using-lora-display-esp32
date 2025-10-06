@@ -158,9 +158,10 @@ int targetNumber = 0;
 int currentNumber = 1;
 
 //for cowRunning game
-int cowPosition = 0; // Current position of the cow
-int cowSpeed = 1; // Speed of the cow
+int8_t cowPosition = 0; // Current position of the cow
+int8_t cowSpeed = 1; // Speed of the cow
 unsigned long lastObstacleTime = 0; // Time when the last obstacle was generated
+float score = 0.0; // Player's score
 
 //button pin defined
 #define playButton 25
@@ -173,8 +174,9 @@ volatile bool buttonHeld = false;
 #define GreenLights 13 //pin 21 consumes too much power!
 #define Buzzer_pin 5 // Buzzer pin  
 
-bool runHamba = false; // Flag to indicate if the game is running
+bool runHambaMatch = false; // Flag to indicate if the game is running
 bool runNumberHold = false; // Flag to indicate if the game is running
+bool runHambaRun = false; // Flag to indicate if the game is running
 bool endGame = true; // Flag to indicate if the game is over
 uint16_t diffLevel = 1; //difficulty level for games
 
@@ -183,46 +185,51 @@ bool ledState = LOW; // Variable to hold the state of the LED
 
 // Menu variables
 int currentMenu = 0;   // 0 = first game, 1 = second game
-const int menuCount = 2;
+const int menuCount = 3; // Total number of menu items
 
+//show menu item name and cursor
 void drawMenu() {
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
 
   // Menu item 1
-  display.setCursor(20, 20);
-  display.print("Play Hamba Game");
+  display.setCursor(20, 10);
+  display.print("Play Hamba Match");
   // Menu item 2
-  display.setCursor(20, 40);
+  display.setCursor(20, 30);
+  display.print("Play Hamba Run");
+  // Menu item 3
+  display.setCursor(20, 50);
   display.print("Play Number Hold");
 
   // Draw arrow
   if (currentMenu == 0) {
-    display.setCursor(5, 20);
-    display.print(">");
-  } else {
-    display.setCursor(5, 40);
+    display.setCursor(5, 10);
     display.print(">");
   }
-
+  else if(currentMenu == 1) {
+    display.setCursor(5, 30);
+    display.print(">");
+  }
+  else if(currentMenu == 2) {
+    display.setCursor(5, 50);
+    display.print(">");
+  }
   display.display();
 }
-
+// Execute action based on selected menu item
 void menuAction(int menuIndex) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-
   if (menuIndex == 0) {
-    display.setCursor(0, 20);
-    runHamba = true;  // Set flag to run Hamba game
+    runHambaMatch = true;  // Set flag to run Hamba game
     Serial.println("Function 1 executed");
   } else if (menuIndex == 1) {
-    display.setCursor(0, 20);
+    runHambaRun = true;  // Set flag to run Hamba Run game
+    Serial.println("Function 2 executed");
+  } else if (menuIndex == 2) {
     targetNumber = random(1, 11); // Set a initial random target number between 1 and 10
     runNumberHold = true;  // Set flag to run Number Hold game
-    Serial.println("Function 2 executed");
+    Serial.println("Function 3 executed");
   }
   display.display();
 }
@@ -272,6 +279,26 @@ void playLoseSound() {
   ledcWriteTone(Buzzer_pin, 400);
   delay(500);
   ledcWriteTone(Buzzer_pin, 0);
+}
+
+//show you lose text on screen
+void showLose(){
+  digitalWrite(RedLights, LOW); // Turn off Red LED
+  digitalWrite(GreenLights, LOW); // Turn off Green LED
+  display.clearDisplay();           // clear the display
+  display.setTextSize(2);          // set text size to 2
+  display.setTextColor(SSD1306_WHITE); // set text color to white
+  display.setCursor(35,10);          // set cursor to top left corner
+  display.print("You");     // printa "Received: " on the display
+  display.setCursor(30,30);        // set cursor to second line
+  display.print("Lose!");     // print the received data on the display
+  display.display();               // update the display
+  
+  // Invert and restore display, pausing in-between
+  display.invertDisplay(true);
+  delay(500);
+  display.invertDisplay(false);
+  delay(300);
 }
 
 //show the next level text on screen
@@ -368,7 +395,7 @@ void setup() {
     display.print(i);
     display.print("%");
     display.display();
-    delay(100);
+    delay(50);
   }
 
   playStartSound(); // Play the starting sound
@@ -376,123 +403,194 @@ void setup() {
 }
 
 
-// void play_hamba_game(){
-//   //run filled cow image
-//   for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
-//       display.clearDisplay();           // clear the display
-//       display.setCursor(0,0);          // set cursor to top left corner
-//       display.setTextSize(1);          // set text size to 1
-//       display.setTextColor(SSD1306_WHITE); // set text color to white
-//       display.print("Level: "); // show level text
-//       display.print(diffLevel); // print the current difficulty level
-//       display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-//       //hold outline of the cow
-//       display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
-//       display.display();            // update the display
-//       delay(40-(int)pow(diffLevel, 2)*1.5);                      // wait for difflevel milliseconds
-      
-//       //loop until button is pressed
-//       if(buttonPressed == true) { //stop when button is pressed
-//         break;
-//       }
-      
-//       //flash the red and blue lights
-//       unsigned long currentMillis = millis(); // Get the current time
-//       if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
-//         previousMillis = currentMillis; // Store the current time
-//         ledState = !ledState; // Change the state of the LED
-//         digitalWrite(RedLights, ledState); // Turn on RedLights
-//         digitalWrite(GreenLights, !ledState); // Turn off GreenLights
-//         //play buzzer sound
-//         ledcWriteTone(Buzzer_pin, 1000);
-//       }
-//       else {
-//         ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
-//       }
-//   }
 
-// if(buttonPressed){
-//     delay(200); //wait to show the last cow position frame
-//     // If the game is not running, turn off the lights
-//     digitalWrite(RedLights, LOW); // Turn on RedLights
-//     digitalWrite(GreenLights, LOW); // Turn on GreenLights
+void play_hamba_match_game(){
+  //run filled cow image
+  for (cow_position = -100; cow_position < 100; cow_position=cow_position+5) {
+      display.clearDisplay();           // clear the display
+      display.setCursor(0,0);          // set cursor to top left corner
+      display.setTextSize(1);          // set text size to 1
+      display.setTextColor(SSD1306_WHITE); // set text color to white
+      display.print("Level: "); // show level text
+      display.print(diffLevel); // print the current difficulty level
+      display.drawBitmap(cow_position, 0, cowFilled, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+      //hold outline of the cow
+      display.drawBitmap(0, 0, cowOutline, LOGO_WIDTH, LOGO_HEIGHT, SSD1306_WHITE);
+      display.display();            // update the display
+      delay(40-(int)pow(diffLevel, 2)*1.5);                      // wait for difflevel milliseconds
+      
+      //loop until button is pressed
+      if(buttonPressed == true) { //stop when button is pressed
+        break;
+      }
+      
+      //flash the red and blue lights
+      unsigned long currentMillis = millis(); // Get the current time
+      if(currentMillis - previousMillis >= 500) { // If 500 milliseconds have passed
+        previousMillis = currentMillis; // Store the current time
+        ledState = !ledState; // Change the state of the LED
+        digitalWrite(RedLights, ledState); // Turn on RedLights
+        digitalWrite(GreenLights, !ledState); // Turn off GreenLights
+        //play buzzer sound
+        ledcWriteTone(Buzzer_pin, 1000);
+      }
+      else {
+        ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
+      }
+  }
 
-//     if(cow_position >= -10 && cow_position <= -6) {
-//       playWinSound(); // Play the winning sound
-//       digitalWrite(RedLights, HIGH); // Turn off RedLights
-//       digitalWrite(GreenLights, HIGH); // Turn off GreenLights
+if(buttonPressed){
+    delay(200); //wait to show the last cow position frame
+    // If the game is not running, turn off the lights
+    digitalWrite(RedLights, LOW); // Turn on RedLights
+    digitalWrite(GreenLights, LOW); // Turn on GreenLights
+
+    if(cow_position >= -10 && cow_position <= -6) {
+      playWinSound(); // Play the winning sound
+      digitalWrite(RedLights, HIGH); // Turn off RedLights
+      digitalWrite(GreenLights, HIGH); // Turn off GreenLights
   
-//       switch (diffLevel) {
-//         case 1:
-//           diffLevel = diffLevel + 1; //increase difficulty level for next round
-//           showextLevel(diffLevel);
-//           break;
-//         case 2:
-//           diffLevel = diffLevel + 1; //increase difficulty level for next round
-//           showextLevel(diffLevel);
-//           break;
-//         case 3:
-//           diffLevel = diffLevel + 1; //increase difficulty level for next round
-//           showextLevel(diffLevel);
-//           break;
-//         case 4:
-//           diffLevel = diffLevel + 1; //increase difficulty level for next round
-//           showextLevel(diffLevel);
-//           break;
-//         case 5:
-//           celebration(); // Call the celebration function to show the celebration graphics
-//           display.clearDisplay(); // Clear the display
-//           display.setCursor(14, 15); // Set cursor to top left corner
-//           display.setTextSize(2); // Set text size to 2
-//           display.setTextColor(SSD1306_WHITE); // Set text color to white
-//           display.print("Play"); // Print "Play" on the display
-//           display.setCursor(14, 35); // Set cursor to next line
-//           display.print("Again!!"); // Print "Again!!" on the display
-//           display.display(); // Update the display
-//           ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
-//           diffLevel = 1; //reset difficulty level
-//           break;
-//       }
-//       //wait until the play button is pressed to play again
-//       while (digitalRead(playButton) == HIGH) {
-//         delay(50);
-//       }
-//       buttonPressed = false; //reset button pressed flag
-//       }
+      switch (diffLevel) {
+        case 1:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 2:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 3:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 4:
+          diffLevel = diffLevel + 1; //increase difficulty level for next round
+          showextLevel(diffLevel);
+          break;
+        case 5:
+          celebration(); // Call the celebration function to show the celebration graphics
+          display.clearDisplay(); // Clear the display
+          display.setCursor(14, 15); // Set cursor to top left corner
+          display.setTextSize(2); // Set text size to 2
+          display.setTextColor(SSD1306_WHITE); // Set text color to white
+          display.print("Play"); // Print "Play" on the display
+          display.setCursor(14, 35); // Set cursor to next line
+          display.print("Again!!"); // Print "Again!!" on the display
+          display.display(); // Update the display
+          ledcWriteTone(Buzzer_pin, 0); // Play no  sound while waiting
+          diffLevel = 1; //reset difficulty level
+          break;
+      }
+      //wait until the play button is pressed to play again
+      while (digitalRead(playButton) == HIGH) {
+        delay(50);
+      }
+      buttonPressed = false; //reset button pressed flag
+      }
 
-//     else {
-//       diffLevel = 1; //reset difficulty level
-//       playLoseSound(); // Play the losing sound
-//       while (digitalRead(playButton) == HIGH) {
-//         //display win or loose
-//         display.clearDisplay(); // Clear the display
-//         display.setCursor(10, 20); // Set cursor to top left corner
-//         display.setTextSize(2); // Set text size to 2
-//         display.setTextColor(SSD1306_WHITE); // Set text color to white
-//         display.print("You Lose!"); // Print "You Lose!" on the display
-//         display.setCursor(12, 40); // Set cursor to top left corner
-//         display.setTextSize(1); // Set text size to 1
-//         display.setTextColor(SSD1306_WHITE); // Set text color to white
-//         display.print("Try Again!"); // Print "Try Again!" on the display
-//         display.display(); // Update the display
-//         }
-//         buttonPressed = false; //reset button pressed flag
-//       }
-//     }
-// }
+    else {
+      diffLevel = 1; //reset difficulty level
+      playLoseSound(); // Play the losing sound
+      while (digitalRead(playButton) == HIGH) {
+        //display win or loose
+        display.clearDisplay(); // Clear the display
+        display.setCursor(10, 20); // Set cursor to top left corner
+        display.setTextSize(2); // Set text size to 2
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("You Lose!"); // Print "You Lose!" on the display
+        display.setCursor(12, 40); // Set cursor to top left corner
+        display.setTextSize(1); // Set text size to 1
+        display.setTextColor(SSD1306_WHITE); // Set text color to white
+        display.print("Try Again!"); // Print "Try Again!" on the display
+        display.display(); // Update the display
+        }
+        buttonPressed = false; //reset button pressed flag
+      }
+    }
+}
 
-void play_hamba_game(){
-  const int boxHeight = 15;
+
+void play_hamba_run_game(){
+  int8_t boxHeight = 0;
+  uint8_t numOfObstacles = 0;
+  bool cowJump = false;
   unsigned long currentObstacleTime = millis();
+
   if(currentObstacleTime - lastObstacleTime >= random(100,1000)) {
     lastObstacleTime = currentObstacleTime; // Store the current time
-    for(int i=display.width(); i>=-4; i-=4) {
+    //select obstacle number and height to send from right to left
+    numOfObstacles = random(0,3); //random number of obstacles between 0 and 2
+    boxHeight = random(5, 25); //random height of obstacles
+  }
+  //scan through the whole screen width
+  for(int i=display.width(); i>=-4; i-=4) {
+    //increment score
+    score += 0.2; // Increase score
+    int scoreInt = round(score); // Round score to nearest integer
+    //check if the button is pressed to bool jump the cow
+    if(buttonPressed == true) { //stop when button is pressed
+      cowJump = true;
+      buttonPressed = false; //reset button pressed flag
+    }
+    if (cowJump) {
+      cowPosition += 5; // Move the cow up
+      if (cowPosition >= 30) { // If the cow reaches the peak height
+        cowJump = false; // Start moving down
+      }
+    } else {
+      if (cowPosition > 0) {
+        cowPosition -= 2; // Move the cow down
+      }
+    }
+    //check if the cow hits the obstacle
+    //if the number of obstacles is more than 0 and the obstacle is in the cow's x range and the cow's y position is less than the obstacle height
+    //if the obstacle count is 2 then the obstacle must pass more to the left before hitting the cow
+    if (numOfObstacles > 0 && i <= 26 && i >= (numOfObstacles == 2 ? 2 : 16) && (cowPosition+10) <= boxHeight + 6) {
+      // Cow hits the obstacle
+      playLoseSound(); // Play the losing sound
+      delay(500); // Wait for a moment      
+      showLose(); // Show lose message and update
+      //show score
+      display.setCursor(30, 50); // Set cursor below text
+      display.setTextSize(1); // Set text size to 1
+      display.setTextColor(SSD1306_WHITE); // Set text color to white
+      display.print("Score: "); // Print "Score: " on the display
+      display.print(scoreInt); // Print the score on the display
+      display.display(); // Update the display
+      cowPosition = 0; // Reset cow position
+      numOfObstacles = 0; // Reset obstacles
+      lastObstacleTime = millis(); // Reset obstacle timer
+      delay(2500); // Show the message for 2 seconds
+      score = 0; // Reset score
+      break; // Exit the for loop to restart the game
+    }
+    else{
+      //show game on the screen
       display.clearDisplay();           // clear the display
       //draw the ball
-      display.drawCircle(cowPosition, 32, 10, SSD1306_WHITE); // Draw circle
+      display.fillCircle(20, 54-cowPosition, 6, SSD1306_WHITE); // Draw circle
       //draw the moving obstacle
-      display.fillRect(i, 64-boxHeight, 3, (boxHeight + random(0, 8)), SSD1306_WHITE); // Draw rectangle
+      switch (numOfObstacles) {
+        case 0:
+          //no obstacle
+          break;
+        case 1:
+          display.fillRect(i, 64-boxHeight, 4, boxHeight, SSD1306_WHITE); // Draw rectangle
+          break;
+        case 2:
+          display.fillRect(i, 64-boxHeight, 4, boxHeight, SSD1306_WHITE); // Draw rectangle
+          display.fillRect(i+10, 64-boxHeight, 4, boxHeight, SSD1306_WHITE); // Draw rectangle
+          break;
+      }
+      //draw the score
+      display.setCursor(0,0);          // set cursor to top left corner
+      display.setTextSize(1);          // set text size to 1
+      display.setTextColor(SSD1306_WHITE); // set text color to white
+      display.print("Score: "); // show level text
+      display.print(scoreInt); // print the current difficulty level
+
       display.display(); // Update screen with each newly-drawn rectangle
+    }
 
       //flash the red and blue lights
       unsigned long currentMillis = millis(); // Get the current time
@@ -509,7 +607,6 @@ void play_hamba_game(){
       }
     }
   }
-}
 
 
 
@@ -633,7 +730,8 @@ void play_number_hold_game(){
 
 void loop() {
    if (endGame) drawMenu(); //show menu when no gameq is running
-   else if (runHamba == true && !endGame) play_hamba_game(); // Call the play_hamba_game function to run the game
+   else if (runHambaRun == true && !endGame) play_hamba_run_game(); // Call the play_hamba_run_game function to run the game
+   else if (runHambaMatch == true && !endGame) play_hamba_match_game(); // Call the play_hamba_match_game function to run the game
    else if (runNumberHold == true && !endGame) play_number_hold_game(); // Call the play_number_hold_game function to run the game
 
     //exit from any game if button is held for more than 2 seconds
@@ -643,7 +741,8 @@ void loop() {
           digitalWrite(RedLights, LOW); // Turn off RedLights
           digitalWrite(GreenLights, LOW); // Turn off GreenLights
           ledcWriteTone(Buzzer_pin, 0); // Turn off buzzer sound
-          runHamba = false;
+          runHambaRun = false;
+          runHambaMatch = false;
           runNumberHold = false;
           endGame = true;  // Set flag to indicate game is over
           diffLevel = 1; //reset difficulty level
