@@ -151,6 +151,12 @@ const unsigned char cowFilled [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+// 'cow horn-03', 12x16px
+const unsigned char cow_horn [] PROGMEM = {
+	0x06, 0x00, 0x06, 0x00, 0x0e, 0x00, 0x1c, 0x00, 0x1c, 0x00, 0x1c, 0x00, 0x38, 0x00, 0x38, 0x00, 
+	0x3c, 0x00, 0x3c, 0x00, 0x1e, 0x00, 0x1f, 0x00, 0x1f, 0x80, 0x0f, 0x80, 0x0f, 0x80, 0x07, 0x00
+};
+
 
 
 //for number guess game
@@ -520,7 +526,7 @@ void play_hamba_run_game(){
     lastObstacleTime = currentObstacleTime; // Store the current time
     //select obstacle number and height to send from right to left
     numOfObstacles = random(0,3); //random number of obstacles between 0 and 2
-    boxHeight = random(5, 25); //random height of obstacles
+    boxHeight = random(5, 22); //random height of obstacles
   }
   //scan through the whole screen width
   for(int i=display.width(); i>=-4; i-=4) {
@@ -545,7 +551,7 @@ void play_hamba_run_game(){
     //check if the cow hits the obstacle
     //if the number of obstacles is more than 0 and the obstacle is in the cow's x range and the cow's y position is less than the obstacle height
     //if the obstacle count is 2 then the obstacle must pass more to the left before hitting the cow
-    if (numOfObstacles > 0 && i <= 26 && i >= (numOfObstacles == 2 ? 2 : 16) && (cowPosition+10) <= boxHeight + 6) {
+    if (numOfObstacles > 0 && i <= 26 && i >= (numOfObstacles == 2 ? 2 : 16) && (cowPosition+10) <= boxHeight + 10) {
       // Cow hits the obstacle
       playLoseSound(); // Play the losing sound
       delay(500); // Wait for a moment      
@@ -567,8 +573,8 @@ void play_hamba_run_game(){
     else{
       //show game on the screen
       display.clearDisplay();           // clear the display
-      //draw the ball
-      display.fillCircle(20, 54-cowPosition, 6, SSD1306_WHITE); // Draw circle
+      //draw the cow horn
+      display.drawBitmap(20, 48-cowPosition, cow_horn, 12, 16, SSD1306_WHITE); // Draw cow with horn
       //draw the moving obstacle
       switch (numOfObstacles) {
         case 0:
