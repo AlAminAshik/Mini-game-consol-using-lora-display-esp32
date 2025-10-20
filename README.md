@@ -1,3 +1,4 @@
+![The device](The_device.jpg)
 # Mini Gaming Console Using ESP32 LORA Display Module
 
 I always wanted to design a gaming console as I was always fascinated by how gaming consoles blend hardware, software, and graphics. As I had one ESP32 based LORA (long-range) development board lying around, I thought of using that. This whole circuit works at 5V. The console works with only one button that can do multiple tasks. The firmware is upgradable, but for my initial project, I have added three cool games that are both fun to play and easy to code!
